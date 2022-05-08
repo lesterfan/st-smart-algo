@@ -1,23 +1,46 @@
 import _ from "lodash"
 import { strict as assert } from "assert"
 
-const calculateL2Norm = (values: number[]): number => {
-  let result = 0
-  for (const value of values) {
-    result += value * value
-  }
-  // No need to sqrt here
+// This one doesn't work very well unfortunately...
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const maxMinusMinObjective = (
+  possibleAllPlayerCounts: Map<number, number>[]
+) => {
+  const allPlayerCounts = _.flatMap(possibleAllPlayerCounts, (playerCounts) => [
+    ...playerCounts.values(),
+  ])
+  return Math.max(...allPlayerCounts) - Math.min(...allPlayerCounts)
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const maxObjective = (possibleAllPlayerCounts: Map<number, number>[]) => {
+  const allPlayerCounts = _.flatMap(possibleAllPlayerCounts, (playerCounts) => [
+    ...playerCounts.values(),
+  ])
+  return Math.max(...allPlayerCounts) - Math.min(...allPlayerCounts)
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const LpNormOfLkNorms = (
+  possibleAllPlayerCounts: Map<number, number>[],
+  p: number,
+  k: number
+) => {
+  const result = _.sum(
+    possibleAllPlayerCounts
+      .map((playerCounts) =>
+        _.sum([...playerCounts.values()].map((x) => Math.pow(x, k)))
+      )
+      .map((x) => Math.pow(x, p))
+  )
   return result
 }
 
-const calculateObjective = (possiblePlayerCounts: Map<number, number>[]) => {
-  // It feels wonky calculating L2 norms of L2 norms, but I can't come up of a better
-  // way of doing this.
-  const norms = possiblePlayerCounts.map((playerCounts) =>
-    calculateL2Norm([...(playerCounts?.values() || [])])
-  )
-  return calculateL2Norm(norms)
-}
+// Change this objective to whatever you want to try
+const calculateObjective = (possibleAllPlayerCounts: Map<number, number>[]) =>
+  // maxMinusMinObjective(possibleAllPlayerCounts)
+  // maxObjective(possibleAllPlayerCounts)
+  LpNormOfLkNorms(possibleAllPlayerCounts, 1, 3)
 
 const pickRandomGoodScTeam = (
   teamSize: number,
@@ -110,7 +133,7 @@ const calculateTeam = (
 export function* createSmartTeamGenerator(
   numPlayers: number,
   teamSize: number,
-  numTries: number = 3000
+  numTries: number = 5000
 ) {
   assert(numPlayers >= 1 && teamSize >= 1)
   let sheepCounts = new Map<number, number>()
