@@ -1,0 +1,8 @@
+{
+  "short_name": "st-smart-algo",
+  "name": "Sheep Tag -smart Algorithm",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}
