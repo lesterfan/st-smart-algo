@@ -11,6 +11,8 @@ import {
   TableHead,
   TableRow,
 } from "@material-ui/core"
+import { FaGithub } from "react-icons/fa"
+
 function App() {
   const [lhs, setLhs] = useState(2)
   const [rhs, setRhs] = useState(4)
@@ -53,7 +55,7 @@ function App() {
             Sheep Tag <code>-smart</code> Algorithm
           </h1>
           <p>
-            Smart teams generator; players are indexed from 0 to numPlayers - 1.
+            Smart teams generator; players are indexed from 0 to numPlayers - 1.{" "}
           </p>
         </div>
         <div>
@@ -74,10 +76,16 @@ function App() {
             {`Inputs must follow constraint: lhs >= 1 && rhs >= 1 && lhs <= rhs`}
           </div>
         )}
-        <div>
+        <div className="top-gap">
           <button disabled={!inputsAreValid} onClick={onGenerateButtonClicked}>
             Generate teams
           </button>
+          <a
+            style={{ marginLeft: "10px" }}
+            href="https://github.com/lesterfan/st-smart-algo#how-the-algorithm-works"
+          >
+            <FaGithub />
+          </a>
         </div>
         {nextTeam && sheepCounts && allPlayerCounts && (
           <div className="top-gap">

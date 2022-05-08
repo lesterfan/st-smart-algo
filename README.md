@@ -1,6 +1,6 @@
 # Sheep Tag `-smart` Algorithm
 
-This project is hosted at http://lesterfan.github.io/st-smart-algo; try it out for yourself!
+This project is hosted at https://lesterfan.github.io/st-smart-algo; try it out for yourself!
 
 ## Getting Started
 
