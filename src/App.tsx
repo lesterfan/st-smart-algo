@@ -111,7 +111,7 @@ function App() {
               <ol
                 className="top-gap"
                 style={{
-                  height: "100px",
+                  height: "200px",
                   overflow: "hidden",
                   overflowY: "scroll",
                 }}
