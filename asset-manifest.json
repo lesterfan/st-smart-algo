@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/st-smart-algo/static/css/main.ef20f6f4.css",
-    "main.js": "/st-smart-algo/static/js/main.7307317c.js",
+    "main.js": "/st-smart-algo/static/js/main.fd86938b.js",
     "index.html": "/st-smart-algo/index.html",
     "main.ef20f6f4.css.map": "/st-smart-algo/static/css/main.ef20f6f4.css.map",
-    "main.7307317c.js.map": "/st-smart-algo/static/js/main.7307317c.js.map"
+    "main.fd86938b.js.map": "/st-smart-algo/static/js/main.fd86938b.js.map"
   },
   "entrypoints": [
     "static/css/main.ef20f6f4.css",
-    "static/js/main.7307317c.js"
+    "static/js/main.fd86938b.js"
   ]
 }
