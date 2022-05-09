@@ -43,7 +43,7 @@ const calculateObjective = (possibleAllPlayerCounts: Map<number, number>[]) =>
   LpNormOfLkNorms(possibleAllPlayerCounts, 1, 3)
 
 const pickRandomGoodScTeam = (
-  teamSize: number,
+  numSheep: number,
   sheepCounts: Map<number, number>
 ) => {
   let possibleTeam: number[] = []
@@ -59,22 +59,22 @@ const pickRandomGoodScTeam = (
 
   // Randomly and greedily pick players starting at lower sc
   let currSc = Math.min(...sheepCounts.values())
-  while (possibleTeam.length < teamSize) {
+  while (possibleTeam.length < numSheep) {
     const currPlayersBySc = playersGroupedBySc.get(currSc)
     if (currPlayersBySc) {
-      if (currPlayersBySc.length <= teamSize - possibleTeam.length) {
+      if (currPlayersBySc.length <= numSheep - possibleTeam.length) {
         possibleTeam = [...possibleTeam, ...currPlayersBySc]
       } else {
         possibleTeam = [
           ...possibleTeam,
-          ..._.sampleSize(currPlayersBySc, teamSize - possibleTeam.length),
+          ..._.sampleSize(currPlayersBySc, numSheep - possibleTeam.length),
         ]
       }
     }
     ++currSc
   }
 
-  assert(possibleTeam.length === teamSize)
+  assert(possibleTeam.length === numSheep)
   for (const playerNum of possibleTeam) {
     const currSc = possibleSheepCounts.get(playerNum)!
     possibleSheepCounts.set(playerNum, currSc + 1)
@@ -89,7 +89,7 @@ const pickRandomGoodScTeam = (
 }
 
 const calculateTeam = (
-  teamSize: number,
+  numSheep: number,
   sheepCounts: Map<number, number>,
   allPlayerCounts: Map<number, number>[],
   numTries: number
@@ -100,7 +100,7 @@ const calculateTeam = (
   let resultObjective = Infinity
   for (let tryNum = 0; tryNum < numTries; ++tryNum) {
     const { possibleTeam, possibleSheepCounts } = pickRandomGoodScTeam(
-      teamSize,
+      numSheep,
       sheepCounts
     )
     let possibleAllPlayerCounts = _.cloneDeep(allPlayerCounts)
@@ -130,34 +130,78 @@ const calculateTeam = (
   }
 }
 
-export function* createSmartTeamGenerator(
-  numPlayers: number,
-  teamSize: number,
+const applyNextTeam = (
+  nextTeam: number[],
+  prevSheepCounts: Map<number, number>,
+  prevAllPlayerCounts: Map<number, number>[]
+) => {
+  let sheepCounts = _.cloneDeep(prevSheepCounts)
+  for (const playerNum of nextTeam) {
+    const currSc = sheepCounts.get(playerNum)!
+    sheepCounts.set(playerNum, currSc + 1)
+  }
+
+  let allPlayerCounts = _.cloneDeep(prevAllPlayerCounts)
+  for (let i = 0; i < nextTeam.length; ++i) {
+    for (let j = i + 1; j < nextTeam.length; ++j) {
+      const p1 = nextTeam[i]
+      const p2 = nextTeam[j]
+      const numTimesTogether = allPlayerCounts[p1]?.get(p2)
+      allPlayerCounts[p1].set(p2, numTimesTogether! + 1)
+      allPlayerCounts[p2].set(p1, numTimesTogether! + 1)
+    }
+  }
+
+  return { sheepCounts, allPlayerCounts }
+}
+
+export async function* createSmartTeamGenerator(
+  numSheep: number,
+  numWolves: number,
   numTries: number = 5000
 ) {
-  assert(numPlayers >= 1 && teamSize >= 1)
+  const numTotalPlayers = numSheep + numWolves
+  assert(numSheep >= 1 && numWolves >= 1)
   let sheepCounts = new Map<number, number>()
-  for (let i = 0; i < numPlayers; ++i) {
+  for (let i = 0; i < numTotalPlayers; ++i) {
     sheepCounts.set(i, 0)
   }
-  let allPlayerCounts: Map<number, number>[] = Array(numPlayers)
+  let allPlayerCounts: Map<number, number>[] = Array(numTotalPlayers)
     .fill(undefined)
     .map(() => new Map<number, number>())
-  for (let p1 = 0; p1 < numPlayers; ++p1) {
-    for (let p2 = p1 + 1; p2 < numPlayers; ++p2) {
+  for (let p1 = 0; p1 < numTotalPlayers; ++p1) {
+    for (let p2 = p1 + 1; p2 < numTotalPlayers; ++p2) {
       allPlayerCounts[p1].set(p2, 0)
       allPlayerCounts[p2].set(p1, 0)
     }
   }
-  while (true) {
-    const { nextTeam, nextSheepCounts, nextAllPlayerCounts } = calculateTeam(
-      teamSize,
-      sheepCounts,
-      allPlayerCounts,
-      numTries
+  try {
+    // Use a precomputed team sequence if it exists
+    const response = await fetch(
+      `${process.env.PUBLIC_URL}/random_precomputed_${numSheep}v${numWolves}.json`
     )
-    sheepCounts = nextSheepCounts
-    allPlayerCounts = nextAllPlayerCounts
-    yield { nextTeam, sheepCounts, allPlayerCounts }
+    const { teamSequences } = await response.json()
+    for (let i = 0; i < Infinity; ++i) {
+      const nextTeam = teamSequences[i % teamSequences.length]
+      ;({ sheepCounts, allPlayerCounts } = applyNextTeam(
+        nextTeam,
+        sheepCounts,
+        allPlayerCounts
+      ))
+      yield { nextTeam, sheepCounts, allPlayerCounts, isPrecomputed: true }
+    }
+  } catch {
+    // go for a best-effort greedy attempt otherwise
+    while (true) {
+      const { nextTeam, nextSheepCounts, nextAllPlayerCounts } = calculateTeam(
+        numSheep,
+        sheepCounts,
+        allPlayerCounts,
+        numTries
+      )
+      sheepCounts = nextSheepCounts
+      allPlayerCounts = nextAllPlayerCounts
+      yield { nextTeam, sheepCounts, allPlayerCounts, isPrecomputed: false }
+    }
   }
 }

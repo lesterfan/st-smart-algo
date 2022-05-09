@@ -5,8 +5,10 @@ import collections
 import itertools
 import json
 import argparse
+import sys
+import os
 
-from pkg_resources import require
+sys.setrecursionlimit(1000000)
 
 
 def nCr(n: int, r: int):
@@ -93,6 +95,7 @@ def unapplyNextTeam(
 
 
 numSequencesSearched = 0
+multiple = 0
 
 
 def bruteForceSearch(
@@ -106,14 +109,10 @@ def bruteForceSearch(
     global numSequencesSearched
     if depth == 0:
         numSequencesSearched += 1
-        print(f"{numSequencesSearched = }")
-        # for row in sheepCounts.items():
-        #     print(row)
-        # for row in pcAdj:
-        #     print(row)
-        # for team in resultingTeams:
-        #     print(team)
-        # print()
+        numWolves = len(pcAdj) - numSheep
+        print(
+            f"{numSequencesSearched = }, {multiple = } for {numSheep = }, {numWolves = }"
+        )
         return isAdjFair(pcAdj)
     for nextTeam in possibleNextTeams(numSheep, sheepCounts):
         applyNextTeam(nextTeam, sheepCounts, pcAdj, resultingTeams)
@@ -125,6 +124,7 @@ def bruteForceSearch(
 
 
 def calculate(numSheep: int, numWolves: int):
+    global multiple
     numTotal = numSheep + numWolves
 
     # This is the number of slots in the player counts triangle
@@ -141,33 +141,37 @@ def calculate(numSheep: int, numWolves: int):
 
     resultingTeams = []
 
-    if bruteForceSearch(
-        minTurnsToFillTriangle, numSheep, sheepCounts, pcAdj, resultingTeams
-    ):
-        print(f"{numSheep = }, {numWolves = } was successful!")
-        print()
-        print("Sequence of teams:")
-        for team in resultingTeams:
-            print(team)
-        print()
-        print("Player counts (adjacency matrix):")
-        for row in pcAdj:
-            print(row)
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    fileName = f"{dir_path}/../../public/precomputed_{numSheep}v{numWolves}.json"
 
-        fileName = f"precomputed_{numSheep}v{numWolves}.json"
-        print(f"(Writing result to file {fileName})")
-        fileJson = {
-            "numSheep": numSheep,
-            "numWolves": numWolves,
-            "numTotal": numTotal,
-            "numSequencesSearched": numSequencesSearched,
-            "teamSequences": resultingTeams,
-            "adjacencyMatrix": pcAdj,
-        }
-        with open(fileName, "w") as f:
-            f.write(json.dumps(fileJson, sort_keys=True))
-    else:
-        print("Unsuccessful!")
+    while True:
+        multiple += 1
+        currNumTurns = multiple * minTurnsToFillTriangle
+        if bruteForceSearch(currNumTurns, numSheep, sheepCounts, pcAdj, resultingTeams):
+            print(f"{numSheep = }, {numWolves = } was successful!")
+            print()
+            print("Sequence of teams:")
+            for team in resultingTeams:
+                print(team)
+            print()
+            print("Player counts (adjacency matrix):")
+            for row in pcAdj:
+                print(row)
+
+            print(f"(Writing result to file {fileName})")
+            fileJson = {
+                "numSheep": numSheep,
+                "numWolves": numWolves,
+                "numTotal": numTotal,
+                "numSequencesSearched": numSequencesSearched,
+                "teamSequences": resultingTeams,
+                "adjacencyMatrix": pcAdj,
+            }
+            with open(fileName, "w") as f:
+                f.write(json.dumps(fileJson, sort_keys=True))
+            return
+        else:
+            print(f"({multiple = }) {fileName = } unsuccessful!")
 
 
 if __name__ == "__main__":

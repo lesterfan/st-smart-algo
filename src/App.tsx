@@ -19,9 +19,9 @@ function App() {
   const inputsAreValid = lhs >= 1 && rhs >= 1 && lhs <= rhs
 
   const smartTeamParams = useRef({ lhs, rhs })
-  const smartTeamGenerator = useRef(createSmartTeamGenerator(lhs + rhs, lhs))
+  const smartTeamGenerator = useRef(createSmartTeamGenerator(lhs, rhs))
 
-  const [nextTeam, setNextTeam] = useState<number[] | undefined>(undefined)
+  const [chosenTeams, setChosenTeams] = useState<number[][]>([])
   const [sheepCounts, setSheepCounts] = useState<
     Map<number, number> | undefined
   >(undefined)
@@ -29,16 +29,25 @@ function App() {
     Map<number, number>[] | undefined
   >(undefined)
 
-  const onGenerateButtonClicked = () => {
+  const [isPrecomputed, setIsPrecomputed] = useState(false)
+
+  const hackyButtonRef = useRef<any>()
+
+  const onGenerateButtonClicked = async () => {
+    let forgetChosenTeams = false
     if (!_.isEqual(smartTeamParams.current, { lhs, rhs })) {
       smartTeamParams.current = { lhs, rhs }
-      smartTeamGenerator.current = createSmartTeamGenerator(lhs + rhs, lhs)
+      smartTeamGenerator.current = createSmartTeamGenerator(lhs, rhs)
+      forgetChosenTeams = true
     }
-    const { nextTeam, sheepCounts, allPlayerCounts } =
-      smartTeamGenerator.current.next().value as any
-    setNextTeam(nextTeam)
+    const { nextTeam, sheepCounts, allPlayerCounts, isPrecomputed } = (
+      await smartTeamGenerator.current.next()
+    ).value as any
+    setChosenTeams([...(forgetChosenTeams ? [] : chosenTeams), nextTeam])
     setSheepCounts(sheepCounts)
     setAllPlayerCounts(allPlayerCounts)
+    setIsPrecomputed(isPrecomputed)
+    setTimeout(() => hackyButtonRef.current?.focus())
   }
 
   return (
@@ -78,7 +87,7 @@ function App() {
         )}
         <div className="top-gap">
           <button disabled={!inputsAreValid} onClick={onGenerateButtonClicked}>
-            Generate teams
+            Calculate Team
           </button>
           <a
             style={{ marginLeft: "10px" }}
@@ -87,11 +96,39 @@ function App() {
             <FaGithub />
           </a>
         </div>
-        {nextTeam && sheepCounts && allPlayerCounts && (
+        {chosenTeams && sheepCounts && allPlayerCounts && (
           <div className="top-gap">
-            <div>
-              <b>Chosen Team:</b>
-              <span> {JSON.stringify(nextTeam)}</span>
+            {isPrecomputed && (
+              <div
+                className="top-gap"
+                style={{ fontSize: "small", color: "gray" }}
+              >
+                {`(Using a random precomputed team sequence optimized for ${lhs} vs ${rhs})`}
+              </div>
+            )}
+            <div className="top-gap">
+              <b>Chosen Teams: </b>
+              <ol
+                className="top-gap"
+                style={{
+                  height: "100px",
+                  overflow: "hidden",
+                  overflowY: "scroll",
+                }}
+              >
+                {chosenTeams.map((team, idx) => (
+                  <li
+                    key={`team-${team}-${idx}`}
+                    style={{
+                      fontWeight:
+                        idx === chosenTeams.length - 1 ? "bold" : undefined,
+                    }}
+                  >
+                    {JSON.stringify(team)}
+                  </li>
+                ))}
+                <button ref={hackyButtonRef} />
+              </ol>
             </div>
             <div className="top-gap">
               <b>Sheep Counts:</b>
